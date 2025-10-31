@@ -1,22 +1,23 @@
-# Ignore virtual environments
+# Build artifacts
+*.o
+*.out
+*.exe
+hex  
+
+# VS Code settings
+.vscode/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# (Optional) Python or other environment files — keep only if needed
 venv/
 .env/
 .*_venv/
-
-# Ignore Python cache and temp files
 __pycache__/
 *.py[cod]
 *.egg-info/
 *.log
 *.sqlite3
-
-# Ignore Jupyter notebook checkpoints
 .ipynb_checkpoints/
-
-# Ignore OS files
-.DS_Store
-Thumbs.db
-
-
-
-.vscode/
