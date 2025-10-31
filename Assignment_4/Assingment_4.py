@@ -1,6 +1,9 @@
 import numpy as np
+from dash import Dash, dcc, html, Input, Output
+import plotly.graph_objs as go
 
 
+# ========== Stationary distribution function ==========
 def compute_stationary_distribution(P_Y, P_L_given_Y, P_notL_given_notY, s):
     """
     P_Y                 ->  P(Y)   
@@ -13,7 +16,6 @@ def compute_stationary_distribution(P_Y, P_L_given_Y, P_notL_given_notY, s):
 
     P_notY = 1 - P_Y
     P_notL_given_Y = 1 - P_L_given_Y
-    # P_L_given_notY = 1 - P_notL_given_notY
 
     # Combined forgetting factor
     f = (P_L_given_Y * P_Y + P_notL_given_notY * P_notY)
@@ -40,14 +42,156 @@ def compute_stationary_distribution(P_Y, P_L_given_Y, P_notL_given_notY, s):
     return pi
 
 
-P_Y             = 0.5
-P_L_given_Y     = 0.5
-# P_L_given_notY  = 0.3
-P_notL_given_notY  = 0.5
-s               = 5.0
+# ========== Dash app ==========
+app = Dash(__name__)
+
+app.layout = html.Div([
+    html.H2("Stationary Distribution Visualizer", style={"textAlign": "center"}),
+    dcc.Graph(id="pi-plot"),
+
+    html.Div([
+        # ===== s =====
+        html.Div([
+            html.Div("s", style={
+                "textAlign": "center", "fontWeight": "bold", "marginBottom": "8px"
+            }),
+            html.Div(
+                dcc.Slider(
+                    id="s",
+                    min=1.0, max=25.0, step=0.5, value=5.0,
+                    marks={1.0001: "1", 5.0: "5", 10.0: "10", 15.0: "15",
+                        20.0: "20", 24.999: "25"},
+                    tooltip={"placement": "bottom", "always_visible": True},
+                    updatemode="drag",
+                ),
+                style={"marginLeft": "30px", "marginRight": "30px"}
+            )
+        ], style={"marginBottom": "40px"}),
+
+        # ===== P_Y =====
+        html.Div([
+            html.Div("P(Y)", style={
+                "textAlign": "center", "fontWeight": "bold", "marginBottom": "8px"
+            }),
+            html.Div(
+                dcc.Slider(
+                    id="P_Y",
+                    min=0.0, max=1.0, step=0.01, value=0.5,
+                    marks={0.0001: "0.0", 0.5: "0.5", 0.9999: "1.0"},
+                    tooltip={"placement": "bottom", "always_visible": True},
+                    updatemode="drag",
+                ),
+                style={"marginLeft": "30px", "marginRight": "30px"}
+            )
+        ], style={"marginBottom": "40px"}),
+
+        # ===== P_L_given_Y =====
+        html.Div([
+            html.Div("P(L|Y)", style={
+                "textAlign": "center", "fontWeight": "bold", "marginBottom": "8px"
+            }),
+            html.Div(
+                dcc.Slider(
+                    id="P_L_given_Y",
+                    min=0.0, max=1.0, step=0.01, value=0.5,
+                    marks={0.0001: "0.0", 0.5: "0.5", 0.9999: "1.0"},
+                    tooltip={"placement": "bottom", "always_visible": True},
+                    updatemode="drag",
+                ),
+                style={"marginLeft": "30px", "marginRight": "30px"}
+            )
+        ], style={"marginBottom": "40px"}),
+
+        # ===== P_notL_given_notY =====
+        html.Div([
+            html.Div("P(nL|nY)", style={
+                "textAlign": "center", "fontWeight": "bold", "marginBottom": "8px"
+            }),
+            html.Div(
+                dcc.Slider(
+                    id="P_notL_given_notY",
+                    min=0.0, max=1.0, step=0.01, value=0.5,
+                    marks={0.0001: "0.0", 0.5: "0.5", 0.9999: "1.0"},
+                    tooltip={"placement": "bottom", "always_visible": True},
+                    updatemode="drag",
+                ),
+                style={"marginLeft": "30px", "marginRight": "30px"}
+            )
+        ], style={"marginBottom": "40px"}),
+
+    ], style={"width": "80%", "margin": "auto"})
+
+])
 
 
-pi = compute_stationary_distribution(P_Y=P_Y, P_L_given_Y=P_L_given_Y, P_notL_given_notY=P_notL_given_notY, s=s)
 
-print(pi)
-print(f"Sum = {np.sum(pi)}")
+# ========== Callback for interactive updates ==========
+@app.callback(
+    Output("pi-plot", "figure"),
+    Input("P_Y", "value"),
+    Input("P_L_given_Y", "value"),
+    Input("P_notL_given_notY", "value"),
+    Input("s", "value"),
+)
+def update_plot(P_Y, P_L_given_Y, P_notL_given_notY, s):
+    pi = compute_stationary_distribution(P_Y, P_L_given_Y, P_notL_given_notY, s)
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=list(range(len(pi))),
+        y=pi,
+        marker=dict(color="cyan"),
+        text=[f"{v:.4f}" for v in pi],
+        textposition="outside",
+    ))
+
+    # --- Dashed vertical line in the middle ---
+    fig.add_vline(
+        x=3.5,  # between state 3 and 4
+        line_dash="dash",
+        line_color="black",
+        line_width=2,
+        opacity=0.7
+    )
+
+    # --- Forget value box ---
+    fig.add_annotation(
+        x=1.5, y=0.92,
+        text="Forget value",
+        showarrow=False,
+        font=dict(size=14, color="Black", family="Arial Black"),
+        bgcolor="rgba(255, 99, 71, 0.85)",  # tomato red, semi-transparent
+        bordercolor="rgba(200, 50, 50, 1)",
+        borderpad=8,
+        borderwidth=2,
+        xanchor="center",
+        yanchor="bottom",
+    )
+
+    # --- Memorize value box ---
+    fig.add_annotation(
+        x=5.5, y=0.92,
+        text="Memorize value",
+        showarrow=False,
+        font=dict(size=14, color="Black", family="Arial Black"),
+        bgcolor="rgba(46, 204, 113, 0.85)",  # greenish
+        bordercolor="rgba(40, 180, 90, 1)",
+        borderpad=8,
+        borderwidth=2,
+        xanchor="center",
+        yanchor="bottom",
+    )
+
+    # --- Layout ---
+    fig.update_layout(
+        xaxis_title="State index",
+        yaxis_title="π value",
+        yaxis=dict(range=[0, 1]),
+        template="plotly_white"
+    )
+    return fig
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
