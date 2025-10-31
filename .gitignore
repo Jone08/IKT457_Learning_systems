@@ -11,7 +11,7 @@ hex
 .DS_Store
 Thumbs.db
 
-# (Optional) Python or other environment files — keep only if needed
+# Python or other environment files
 venv/
 .env/
 .*_venv/
